@@ -13,7 +13,7 @@ const weaponTypes = [
 const chestLoot = [
   { name: "Cave Sword", kind: "weapon", weaponIndex: 3, color: "#d8e6c1" },
   { name: "Bone Repeater", kind: "weapon", weaponIndex: 1, color: "#b6ead1" },
-  { name: "Bazooka", kind: "weapon", weaponIndex: 4, color: "#ff8d65" },
+  { name: "kaboom kabplow", kind: "weapon", weaponIndex: 4, color: "#ff8d65" },
   { name: "Medkit", kind: "medkit", color: "#f17f72" },
   { name: "Prism Cannon", kind: "weapon", weaponIndex: 2, color: "#ff8b79" }
 ];
