@@ -860,6 +860,11 @@ function drawPlayer() {
   stroke(currentWeapon().color);
   strokeWeight(4);
   line(x + player.facing * 8, y + 28, x + player.facing * 24, y + 23);
+  if (player.meleeTimer > 0) {
+    stroke("#f4e3b1");
+    strokeWeight(4);
+    line(x + player.facing * 20, y + 27, x + player.facing * 52, y + 8);
+  }
   noStroke();
 }
 
@@ -891,7 +896,8 @@ function drawHud() {
   fill(currentWeapon().color);
   text(`${currentWeapon().name}  [${player.weapon + 1}]`, GAME_W - 234, GAME_H - 58);
   fill("#e7e2d4");
-  const ammoText = player.reloadTimer > 0 ? `RELOADING ${ceil(player.reloadTimer / 60)}s` : `${player.ammo} / ${currentWeapon().magazine}  ·  Q reload`;
+  const ammoText = currentWeapon().melee ? "MELEE  ·  close range" :
+    player.reloadTimer > 0 ? `RELOADING ${ceil(player.reloadTimer / 60)}s` : `${player.ammo} / ${currentWeapon().magazine}  ·  Q reload`;
   text(ammoText, GAME_W - 234, GAME_H - 34);
   drawInventory();
 }
