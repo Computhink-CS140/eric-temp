@@ -7,7 +7,7 @@ const weaponTypes = [
   { name: "Bone Repeater", damage: 10, speed: 12, magazine: 24, reload: 62, delay: 8, color: "#b6ead1" },
   { name: "Prism Cannon", damage: 34, speed: 7, magazine: 5, reload: 76, delay: 34, color: "#ff8b79" },
   { name: "Cave Sword", damage: 42, magazine: Infinity, reload: 0, delay: 30, color: "#d8e6c1", melee: true },
-  { name: "Bazooka", damage: 58, speed: 5, magazine: 3, reload: 96, delay: 42, color: "#ff8d65", explosive: true }
+  { name: "Bazooka", damage: 58, speed: 5, magazine: 1, reload: 96, delay: 42, color: "#ff8d65", explosive: true }
 ];
 
 const chestLoot = [
