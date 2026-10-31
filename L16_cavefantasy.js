@@ -468,7 +468,7 @@ function updateBoss() {
 
 function fireWeapon() {
   const weapon = currentWeapon();
-  if (player.fireTimer > 0 || player.reloadTimer > 0 || player.ammo <= 0) return;
+  if (player.fireTimer > 0 || player.reloadTimer > 0 || (!weapon.melee && player.ammo <= 0)) return;
   const centerX = player.x + player.w / 2;
   const startY = player.y + (keyIsDown(83) ? 31 : 21);
   let targetX = centerX + player.facing * 100;
