@@ -9,9 +9,15 @@ const weaponTypes = [
 ];
 
 const bossTypes = [
-  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 120, damage: 1, archetype: "root", attackDelay: 108 },
-  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 175, damage: 1, archetype: "shard", attackDelay: 112 },
-  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 230, damage: 1, archetype: "ember", attackDelay: 94 }
+  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 150, damage: 1, archetype: "root", flying: false, attackDelay: 88 },
+  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 205, damage: 1, archetype: "shard", flying: true, attackDelay: 82 },
+  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 260, damage: 1, archetype: "ember", flying: true, attackDelay: 70 }
+];
+
+const caveThemes = [
+  { top: "#172b2b", middle: "#213b34", bottom: "#111b1b", glow: [103, 220, 188], floor: "#25352e", platform: "#425747", edge: "#91aa78" },
+  { top: "#142733", middle: "#1c3c4a", bottom: "#101a25", glow: [101, 209, 229], floor: "#20343d", platform: "#38606a", edge: "#83d3d5" },
+  { top: "#321d24", middle: "#51282a", bottom: "#1d1418", glow: [255, 131, 72], floor: "#382629", platform: "#65403a", edge: "#e09565" }
 ];
 
 let state = "title";
@@ -58,26 +64,37 @@ function loadRoom(index) {
   roomIndex = index;
   const data = bossTypes[index];
   boss = {
-    x: 790, y: index === 1 ? FLOOR_Y - 120 : FLOOR_Y - 51, w: 76, h: 98, health: data.health,
+    x: 790, y: data.flying ? FLOOR_Y - 120 : FLOOR_Y - 51, w: 76, h: 98, health: data.health,
     maxHealth: data.health, data, attackTimer: data.attackDelay,
     defeated: false, hitFlash: 0
   };
   projectiles = [];
   enemyShots = [];
   particles = [];
-  platforms = [
-    { x: 0, y: FLOOR_Y, w: GAME_W, h: GAME_H - FLOOR_Y },
-    { x: 188, y: 440, w: 136, h: 18 },
-    { x: 405, y: 365, w: 150, h: 18 },
-    { x: 661, y: 430, w: 148, h: 18 }
+  const platformLayouts = [
+    [
+      { x: 0, y: FLOOR_Y, w: GAME_W, h: GAME_H - FLOOR_Y },
+      { x: 188, y: 440, w: 136, h: 18 }, { x: 405, y: 365, w: 150, h: 18 }, { x: 661, y: 430, w: 148, h: 18 }
+    ],
+    [
+      { x: 0, y: FLOOR_Y, w: GAME_W, h: GAME_H - FLOOR_Y },
+      { x: 112, y: 448, w: 124, h: 18 }, { x: 280, y: 374, w: 140, h: 18 },
+      { x: 484, y: 430, w: 142, h: 18 }, { x: 701, y: 359, w: 148, h: 18 }
+    ],
+    [
+      { x: 0, y: FLOOR_Y, w: GAME_W, h: GAME_H - FLOOR_Y },
+      { x: 140, y: 424, w: 150, h: 18 }, { x: 355, y: 365, w: 136, h: 18 },
+      { x: 570, y: 420, w: 145, h: 18 }, { x: 765, y: 335, w: 132, h: 18 }
+    ]
   ];
+  platforms = platformLayouts[index];
   chest = { x: 255, y: FLOOR_Y - 28, opened: false };
-  coins = [
-    { x: 145, y: FLOOR_Y - 16, taken: false },
-    { x: 246, y: 402, taken: false },
-    { x: 470, y: 327, taken: false },
-    { x: 710, y: 392, taken: false }
+  const coinLayouts = [
+    [[145, FLOOR_Y - 16], [246, 402], [470, 327], [710, 392]],
+    [[165, 422], [345, 348], [550, 404], [772, 333]],
+    [[185, 398], [420, 339], [635, 394], [820, 309]]
   ];
+  coins = coinLayouts[index].map(([x, y]) => ({ x, y, taken: false }));
   player.x = 90;
   player.y = FLOOR_Y - player.h;
   player.vx = 0;
@@ -128,11 +145,12 @@ function draw() {
 }
 
 function drawCave() {
+  const theme = caveThemes[roomIndex] || caveThemes[0];
   const ctx = drawingContext;
   const gradient = ctx.createLinearGradient(0, 0, 0, GAME_H);
-  gradient.addColorStop(0, "#172b2b");
-  gradient.addColorStop(0.55, "#213b34");
-  gradient.addColorStop(1, "#111b1b");
+  gradient.addColorStop(0, theme.top);
+  gradient.addColorStop(0.55, theme.middle);
+  gradient.addColorStop(1, theme.bottom);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, GAME_W, GAME_H);
 
@@ -148,13 +166,41 @@ function drawCave() {
   for (let x = GAME_W; x >= 0; x -= 90) vertex(x, 483 + noise(x * 0.009, 20) * 46);
   endShape(CLOSE);
 
+  if (roomIndex === 0) {
+    stroke(102, 143, 82, 70);
+    strokeWeight(5);
+    for (let i = 0; i < 8; i++) {
+      const x = 35 + i * 132;
+      line(x, 0, x + sin(i * 3) * 24, 72 + (i % 3) * 23);
+      line(x + sin(i * 3) * 24, 72 + (i % 3) * 23, x + 7, 94 + (i % 3) * 23);
+    }
+  } else if (roomIndex === 1) {
+    noStroke();
+    for (let i = 0; i < 7; i++) {
+      const x = 22 + i * 151;
+      fill(67, 151, 164, 52);
+      triangle(x - 24, 445, x, 286 + (i % 3) * 32, x + 27, 445);
+      fill(125, 222, 222, 55);
+      triangle(x - 8, 420, x, 310 + (i % 3) * 32, x + 6, 420);
+    }
+  } else {
+    stroke(255, 106, 58, 95);
+    strokeWeight(3);
+    for (let i = 0; i < 8; i++) {
+      const x = 24 + i * 129;
+      line(x, 514, x + 13, 506);
+      line(x + 13, 506, x + 22, 515);
+      line(x + 9, 525, x + 17, 519);
+    }
+  }
+
   for (let i = 0; i < 13; i++) {
     const x = (i * 83 + 38) % GAME_W;
     const y = 110 + (i * 61) % 310;
     const pulse = 0.55 + sin(frameTick * 0.035 + i) * 0.18;
-    fill(i % 2 ? 103 : 255, i % 2 ? 220 : 169, i % 2 ? 188 : 100, 25 * pulse);
+    fill(theme.glow[0], theme.glow[1], theme.glow[2], 25 * pulse);
     circle(x, y, 34 + pulse * 17);
-    fill(i % 2 ? 143 : 255, i % 2 ? 235 : 197, i % 2 ? 203 : 131, 90);
+    fill(theme.glow[0], theme.glow[1], theme.glow[2], 90);
     circle(x, y, 4 + pulse * 3);
   }
 
@@ -335,10 +381,15 @@ function updateBoss() {
     boss.x = 760 + sin(frameTick * 0.016) * 58;
     boss.y = FLOOR_Y - 122 + sin(frameTick * 0.025) * 38;
   } else {
-    boss.x = 785 + sin(frameTick * 0.02) * 38;
-    boss.y = FLOOR_Y - 58 + sin(frameTick * 0.03) * 8;
+    boss.x = 760 + sin(frameTick * 0.024) * 62;
+    boss.y = FLOOR_Y - 126 + sin(frameTick * 0.035) * 34;
   }
   if (boss.hitFlash > 0) boss.hitFlash--;
+  const touchingPlayer = player.x < boss.x + boss.w / 2 &&
+    player.x + player.w > boss.x - boss.w / 2 &&
+    player.y < boss.y + boss.h / 2 &&
+    player.y + player.h > boss.y - boss.h / 2;
+  if (touchingPlayer) damagePlayer(1);
   boss.attackTimer--;
   if (boss.attackTimer <= 0) {
     fireBossShot();
