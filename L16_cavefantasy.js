@@ -9,9 +9,9 @@ const weaponTypes = [
 ];
 
 const bossTypes = [
-  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 150, damage: 1, archetype: "root", flying: false, attackDelay: 88 },
-  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 205, damage: 1, archetype: "shard", flying: true, attackDelay: 82 },
-  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 260, damage: 1, archetype: "ember", flying: true, attackDelay: 70 }
+  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 125, damage: 1, archetype: "root", flying: false, difficulty: 3, chaseSpeed: 1.1, verticalSpeed: 0, attackDelay: 108 },
+  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 205, damage: 1, archetype: "shard", flying: true, difficulty: 7, chaseSpeed: 2, verticalSpeed: 1.4, attackDelay: 82 },
+  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 260, damage: 1, archetype: "ember", flying: true, difficulty: 10, chaseSpeed: 3.1, verticalSpeed: 2.2, attackDelay: 66 }
 ];
 
 const caveThemes = [
@@ -374,15 +374,19 @@ function updatePickups() {
 
 function updateBoss() {
   if (boss.defeated) return;
-  if (boss.data.archetype === "root") {
-    boss.x = 785 + sin(frameTick * 0.009) * 18;
-    boss.y = FLOOR_Y - 51 + sin(frameTick * 0.035) * 3;
-  } else if (boss.data.archetype === "shard") {
-    boss.x = 760 + sin(frameTick * 0.016) * 58;
-    boss.y = FLOOR_Y - 122 + sin(frameTick * 0.025) * 38;
+  const playerCenterX = player.x + player.w / 2;
+  const targetX = constrain(playerCenterX, boss.w / 2 + 12, GAME_W - boss.w / 2 - 12);
+  const phaseBoost = boss.health < boss.maxHealth * 0.35 ? 1.25 : 1;
+  boss.x += constrain(targetX - boss.x, -boss.data.chaseSpeed * phaseBoost, boss.data.chaseSpeed * phaseBoost);
+
+  if (boss.data.flying) {
+    const hoverHeight = boss.data.archetype === "shard" ? 118 : 92;
+    const targetY = constrain(player.y + player.h / 2 - hoverHeight, 142, FLOOR_Y - boss.h / 2 - 8);
+    const bob = sin(frameTick * (boss.data.archetype === "shard" ? 0.05 : 0.075)) * 14;
+    const hoverY = constrain(targetY + bob, 142, FLOOR_Y - boss.h / 2 - 8);
+    boss.y += constrain(hoverY - boss.y, -boss.data.verticalSpeed, boss.data.verticalSpeed);
   } else {
-    boss.x = 760 + sin(frameTick * 0.024) * 62;
-    boss.y = FLOOR_Y - 126 + sin(frameTick * 0.035) * 34;
+    boss.y = FLOOR_Y - boss.h / 2 + sin(frameTick * 0.035) * 3;
   }
   if (boss.hitFlash > 0) boss.hitFlash--;
   const touchingPlayer = player.x < boss.x + boss.w / 2 &&
@@ -438,7 +442,7 @@ function fireBossShot() {
     kind = "shard";
   } else if (boss.data.archetype === "ember") {
     spread = [-0.38, -0.19, 0, 0.19, 0.38];
-    speed = 3.8;
+    speed = 4.6;
     radius = 9;
     kind = "ember";
   }
@@ -689,7 +693,7 @@ function drawBossBar() {
   textAlign(LEFT, CENTER);
   textSize(13);
   fill("#eee0c8");
-  text(`${boss.data.name}  ·  ${boss.data.title}`, x, y - 7);
+  text(`${boss.data.name}  ·  ${boss.data.difficulty}/10`, x, y - 7);
   fill("#492f30");
   rect(x, y + 6, barW, 9, 4);
   fill(boss.data.color);
