@@ -610,9 +610,12 @@ function drawBoss() {
         line(x - 24, y, player.x + player.w / 2, player.y + player.h / 2 + offset * 54);
       }
     } else {
-      line(x - 36, FLOOR_Y - 14, x - 36, FLOOR_Y - 70);
-      line(x, FLOOR_Y - 14, x, FLOOR_Y - 70);
-      line(x + 36, FLOOR_Y - 14, x + 36, FLOOR_Y - 70);
+      const startX = x - 26;
+      const aim = atan2(player.y + player.h / 2 - y, player.x + player.w / 2 - startX);
+      for (let offset = -2; offset <= 2; offset++) {
+        const shotAngle = aim + offset * 0.19;
+        line(startX, y, startX + cos(shotAngle) * 112, y + sin(shotAngle) * 112);
+      }
     }
   }
   noStroke();
