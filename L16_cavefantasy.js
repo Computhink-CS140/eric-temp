@@ -531,17 +531,18 @@ function currentWeapon() {
 }
 
 function drawPlatforms() {
+  const theme = caveThemes[roomIndex] || caveThemes[0];
   noStroke();
   for (let i = 0; i < platforms.length; i++) {
     const p = platforms[i];
-    fill(i === 0 ? "#25352e" : "#425747");
+    fill(i === 0 ? theme.floor : theme.platform);
     rect(p.x, p.y, p.w, p.h, 3);
-    fill("#91aa78");
+    fill(theme.edge);
     rect(p.x, p.y, p.w, 4, 2);
-    fill(24, 39, 33, 170);
+    fill(theme.glow[0], theme.glow[1], theme.glow[2], 70);
     for (let x = p.x + 12; x < p.x + p.w - 5; x += 35) circle(x, p.y + 12, 3);
   }
-  fill(164, 196, 146, 50);
+  fill(theme.glow[0], theme.glow[1], theme.glow[2], 50);
   rect(0, FLOOR_Y - 2, GAME_W, 2);
 }
 
