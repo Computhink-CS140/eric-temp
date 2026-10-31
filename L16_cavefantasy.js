@@ -303,7 +303,10 @@ function updateCombat() {
       enemyShots.splice(i, 1);
       continue;
     }
-    if (rectCircle(player.x, player.y, player.w, player.h, shot.x, shot.y, shot.r * 2)) {
+    const crouching = keyIsDown(83) || keyIsDown(DOWN_ARROW);
+    const hitboxY = player.y + (crouching ? 15 : 0);
+    const hitboxHeight = crouching ? 31 : player.h;
+    if (rectCircle(player.x, hitboxY, player.w, hitboxHeight, shot.x, shot.y, shot.r * 2)) {
       enemyShots.splice(i, 1);
       damagePlayer(boss.data.damage);
     }
