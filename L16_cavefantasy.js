@@ -733,6 +733,16 @@ function updateParticles() {
   }
 }
 
+function drawParticles() {
+  noStroke();
+  for (const particle of particles) {
+    const particleColor = color(particle.color);
+    particleColor.setAlpha(map(particle.life, 0, 40, 0, 190));
+    fill(particleColor);
+    circle(particle.x, particle.y, particle.size);
+  }
+}
+
 function rectCircle(rx, ry, rw, rh, cx, cy, diameter) {
   const nearestX = constrain(cx, rx, rx + rw);
   const nearestY = constrain(cy, ry, ry + rh);
