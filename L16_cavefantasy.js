@@ -9,9 +9,9 @@ const weaponTypes = [
 ];
 
 const bossTypes = [
-  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 125, damage: 1, archetype: "root", flying: false, difficulty: 3, chaseSpeed: 1.1, verticalSpeed: 0, attackDelay: 108 },
-  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 205, damage: 1, archetype: "shard", flying: true, difficulty: 7, chaseSpeed: 2, verticalSpeed: 1.4, attackDelay: 82 },
-  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 260, damage: 1, archetype: "ember", flying: true, difficulty: 10, chaseSpeed: 3.1, verticalSpeed: 2.2, attackDelay: 66 }
+  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 125, damage: 1, archetype: "root", flying: false, difficulty: 3, chaseSpeed: 1.1, verticalSpeed: 0, moveRange: 110, altitudeRange: 0, maneuverMin: 62, maneuverMax: 104, attackDelay: 108 },
+  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 205, damage: 1, archetype: "shard", flying: true, difficulty: 7, chaseSpeed: 2, verticalSpeed: 1.4, moveRange: 190, altitudeRange: 115, maneuverMin: 34, maneuverMax: 65, attackDelay: 82 },
+  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 260, damage: 1, archetype: "ember", flying: true, difficulty: 10, chaseSpeed: 3.1, verticalSpeed: 2.2, moveRange: 250, altitudeRange: 145, maneuverMin: 20, maneuverMax: 44, attackDelay: 66 }
 ];
 
 const caveThemes = [
@@ -66,6 +66,8 @@ function loadRoom(index) {
   boss = {
     x: 790, y: data.flying ? FLOOR_Y - 120 : FLOOR_Y - 51, w: 76, h: 98, health: data.health,
     maxHealth: data.health, data, attackTimer: data.attackDelay,
+    movementTimer: 0, movementTargetX: 790, movementTargetY: data.flying ? FLOOR_Y - 120 : FLOOR_Y - 51,
+    movementBurstFrames: 0,
     defeated: false, hitFlash: 0
   };
   projectiles = [];
@@ -375,16 +377,34 @@ function updatePickups() {
 function updateBoss() {
   if (boss.defeated) return;
   const playerCenterX = player.x + player.w / 2;
-  const targetX = constrain(playerCenterX, boss.w / 2 + 12, GAME_W - boss.w / 2 - 12);
+  boss.movementTimer--;
+  if (boss.movementTimer <= 0) {
+    boss.movementTargetX = constrain(
+      playerCenterX + random(-boss.data.moveRange, boss.data.moveRange),
+      boss.w / 2 + 12,
+      GAME_W - boss.w / 2 - 12
+    );
+    if (boss.data.flying) {
+      const hoverHeight = boss.data.archetype === "shard" ? 118 : 92;
+      boss.movementTargetY = constrain(
+        player.y + player.h / 2 - hoverHeight + random(-boss.data.altitudeRange, boss.data.altitudeRange),
+        142,
+        FLOOR_Y - boss.h / 2 - 8
+      );
+    }
+    boss.movementTimer = random(boss.data.maneuverMin, boss.data.maneuverMax);
+    boss.movementBurstFrames = random(1) < 0.22 ? Math.floor(random(6, 12)) : 0;
+  }
+
   const phaseBoost = boss.health < boss.maxHealth * 0.35 ? 1.25 : 1;
-  boss.x += constrain(targetX - boss.x, -boss.data.chaseSpeed * phaseBoost, boss.data.chaseSpeed * phaseBoost);
+  const burstBoost = boss.movementBurstFrames > 0 ? 2.2 : 1;
+  const movementSpeed = boss.data.chaseSpeed * phaseBoost * burstBoost;
+  boss.x += constrain(boss.movementTargetX - boss.x, -movementSpeed, movementSpeed);
+  if (boss.movementBurstFrames > 0) boss.movementBurstFrames--;
 
   if (boss.data.flying) {
-    const hoverHeight = boss.data.archetype === "shard" ? 118 : 92;
-    const targetY = constrain(player.y + player.h / 2 - hoverHeight, 142, FLOOR_Y - boss.h / 2 - 8);
-    const bob = sin(frameTick * (boss.data.archetype === "shard" ? 0.05 : 0.075)) * 14;
-    const hoverY = constrain(targetY + bob, 142, FLOOR_Y - boss.h / 2 - 8);
-    boss.y += constrain(hoverY - boss.y, -boss.data.verticalSpeed, boss.data.verticalSpeed);
+    const movementSpeedY = boss.data.verticalSpeed * burstBoost;
+    boss.y += constrain(boss.movementTargetY - boss.y, -movementSpeedY, movementSpeedY);
   } else {
     boss.y = FLOOR_Y - boss.h / 2 + sin(frameTick * 0.035) * 3;
   }
