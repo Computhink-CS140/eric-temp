@@ -5,7 +5,17 @@ const FLOOR_Y = 530;
 const weaponTypes = [
   { name: "Ember Wand", damage: 15, speed: 9, magazine: 12, reload: 48, delay: 16, color: "#ffd17f" },
   { name: "Bone Repeater", damage: 10, speed: 12, magazine: 24, reload: 62, delay: 8, color: "#b6ead1" },
-  { name: "Prism Cannon", damage: 34, speed: 7, magazine: 5, reload: 76, delay: 34, color: "#ff8b79" }
+  { name: "Prism Cannon", damage: 34, speed: 7, magazine: 5, reload: 76, delay: 34, color: "#ff8b79" },
+  { name: "Cave Sword", damage: 42, magazine: Infinity, reload: 0, delay: 30, color: "#d8e6c1", melee: true },
+  { name: "Bazooka", damage: 58, speed: 5, magazine: 3, reload: 96, delay: 42, color: "#ff8d65", explosive: true }
+];
+
+const chestLoot = [
+  { name: "Cave Sword", kind: "weapon", weaponIndex: 3, color: "#d8e6c1" },
+  { name: "Bone Repeater", kind: "weapon", weaponIndex: 1, color: "#b6ead1" },
+  { name: "Bazooka", kind: "weapon", weaponIndex: 4, color: "#ff8d65" },
+  { name: "Medkit", kind: "medkit", color: "#f17f72" },
+  { name: "Prism Cannon", kind: "weapon", weaponIndex: 2, color: "#ff8b79" }
 ];
 
 const bossTypes = [
@@ -31,6 +41,7 @@ let coins = [];
 let particles = [];
 let platforms = [];
 let chest;
+let chestLootIndex = 0;
 let frameTick = 0;
 let message = "";
 let messageTimer = 0;
@@ -50,11 +61,12 @@ function setup() {
 function resetRun() {
   state = "title";
   roomIndex = 0;
+  chestLootIndex = 0;
   player = {
     x: 90, y: FLOOR_Y - 46, w: 30, h: 46, vx: 0, vy: 0, facing: 1,
     health: 5, maxHealth: 5, coins: 0, exp: 0, nextExp: 45, level: 1,
     inventory: [0], weapon: 0, ammo: 12, reloadTimer: 0, fireTimer: 0,
-    dashTimer: 0, dashCooldown: 0, invulnerable: 0, grounded: false
+    dashTimer: 0, dashCooldown: 0, invulnerable: 0, grounded: false, meleeTimer: 0
   };
   loadRoom(0);
   state = "title";
@@ -90,7 +102,7 @@ function loadRoom(index) {
     ]
   ];
   platforms = platformLayouts[index];
-  chest = { x: 255, y: FLOOR_Y - 28, opened: false };
+  chest = spawnChest();
   const coinLayouts = [
     [[145, FLOOR_Y - 16], [246, 402], [470, 327], [710, 392]],
     [[165, 422], [345, 348], [550, 404], [772, 333]],
@@ -109,6 +121,15 @@ function loadRoom(index) {
   playerSprite.y = player.y + player.h / 2;
   state = "playing";
   showMessage(`${data.name} waits in the ${["Moss Hall", "Shiverglass Grotto", "The Ember Vault"][index]}.`, 170);
+}
+
+function spawnChest() {
+  const loot = chestLoot[chestLootIndex % chestLoot.length];
+  chestLootIndex++;
+  return {
+    x: random(130, GAME_W - 130), y: -42, targetY: FLOOR_Y - 28,
+    fallSpeed: 7, timer: 120, falling: true, opened: false, loot
+  };
 }
 
 function draw() {
@@ -265,6 +286,7 @@ function drawTitleHero() {
 
 function updateGame() {
   updatePlayer();
+  updateChest();
   updateCombat();
   updatePickups();
   updateBoss();
@@ -275,10 +297,32 @@ function updateGame() {
   }
 }
 
+function updateChest() {
+  if (chest.opened) return;
+  if (chest.falling) {
+    chest.y += chest.fallSpeed;
+    if (chest.y >= chest.targetY) {
+      chest.y = chest.targetY;
+      chest.falling = false;
+      chest.timer = 120;
+      burst(chest.x, chest.y, chest.loot.color, 8);
+      showMessage(`${chest.loot.name} chest landed. Open it within 2 seconds.`, 90);
+    }
+    return;
+  }
+  chest.timer--;
+  if (chest.timer <= 0) {
+    burst(chest.x, chest.y, chest.loot.color, 14);
+    chest = spawnChest();
+    showMessage("Chest missed. A new chest is falling!", 75);
+  }
+}
+
 function updatePlayer() {
   if (player.invulnerable > 0) player.invulnerable--;
   if (player.dashCooldown > 0) player.dashCooldown--;
   if (player.fireTimer > 0) player.fireTimer--;
+  if (player.meleeTimer > 0) player.meleeTimer--;
   if (player.reloadTimer > 0) {
     player.reloadTimer--;
     if (player.reloadTimer === 0) {
@@ -336,7 +380,8 @@ function updateCombat() {
     if (!boss.defeated && rectCircle(boss.x - boss.w / 2, boss.y - boss.h / 2, boss.w, boss.h, shot.x, shot.y, 9)) {
       boss.health -= shot.damage;
       boss.hitFlash = 7;
-      burst(shot.x, shot.y, shot.color, 5);
+      burst(shot.x, shot.y, shot.color, shot.explosive ? 24 : 5);
+      if (shot.explosive) shake = 5;
       projectiles.splice(i, 1);
       if (boss.health <= 0) defeatBoss();
     }
@@ -438,9 +483,23 @@ function fireWeapon() {
   player.facing = targetX >= centerX ? 1 : -1;
   const startX = centerX + player.facing * 16;
   const angle = atan2(targetY - startY, targetX - startX);
+  if (weapon.melee) {
+    player.fireTimer = weapon.delay;
+    player.meleeTimer = 9;
+    const bossDeltaX = boss.x - centerX;
+    const verticalReach = Math.abs(boss.y - (player.y + player.h / 2)) < boss.h / 2 + player.h / 2 + 28;
+    if (!boss.defeated && bossDeltaX * player.facing >= 0 && Math.abs(bossDeltaX) < 78 && verticalReach) {
+      boss.health -= weapon.damage + (player.level - 1) * 2;
+      boss.hitFlash = 7;
+      burst(boss.x, boss.y, weapon.color, 14);
+      if (boss.health <= 0) defeatBoss();
+    }
+    return;
+  }
   projectiles.push({
     x: startX, y: startY, vx: cos(angle) * weapon.speed, vy: sin(angle) * weapon.speed,
-    damage: weapon.damage + (player.level - 1) * 2, color: weapon.color, life: 115
+    damage: weapon.damage + (player.level - 1) * 2, color: weapon.color, life: 115,
+    explosive: weapon.explosive === true
   });
   player.ammo--;
   player.fireTimer = weapon.delay;
@@ -524,20 +583,38 @@ function interact() {
     return;
   }
   if (state !== "playing") return;
-  const nearChest = !chest.opened && dist(player.x + player.w / 2, player.y + player.h / 2, chest.x, chest.y) < 82;
+  const nearChest = !chest.falling && !chest.opened &&
+    dist(player.x + player.w / 2, player.y + player.h / 2, chest.x, chest.y) < 82;
   if (nearChest) {
     chest.opened = true;
-    const rewardWeapon = min(roomIndex + 1, weaponTypes.length - 1);
-    if (!player.inventory.includes(rewardWeapon)) player.inventory.push(rewardWeapon);
     player.coins += 8;
+    if (chest.loot.kind === "medkit") {
+      if (player.health < player.maxHealth) {
+        player.health = min(player.maxHealth, player.health + 2);
+      } else {
+        player.maxHealth++;
+        player.health++;
+      }
+      burst(chest.x, chest.y - 12, chest.loot.color, 20);
+      showMessage("Medkit used: 2 hearts restored", 130);
+      return;
+    }
+
+    const rewardWeapon = chest.loot.weaponIndex;
+    if (!player.inventory.includes(rewardWeapon)) {
+      player.inventory.push(rewardWeapon);
+      player.weapon = rewardWeapon;
+    } else {
+      player.coins += 5;
+    }
     player.ammo = currentWeapon().magazine;
-    burst(chest.x, chest.y - 12, "#ffd477", 20);
-    showMessage(`Chest opened: ${weaponTypes[rewardWeapon].name} + 8 coins`, 130);
+    burst(chest.x, chest.y - 12, chest.loot.color, 20);
+    showMessage(`Chest opened: ${chest.loot.name} + 8 coins`, 130);
   }
 }
 
 function startReload() {
-  if (state !== "playing" || player.reloadTimer > 0 || player.ammo === currentWeapon().magazine) return;
+  if (state !== "playing" || currentWeapon().melee || player.reloadTimer > 0 || player.ammo === currentWeapon().magazine) return;
   player.reloadTimer = currentWeapon().reload;
   showMessage("Reloading...", 45);
 }
