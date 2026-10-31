@@ -664,15 +664,30 @@ function drawCoins() {
 function drawChest() {
   const x = chest.x;
   const y = chest.y;
+  if (chest.falling) {
+    stroke(chest.loot.color);
+    strokeWeight(2);
+    line(x, y - 34, x, y - 62);
+  }
   noStroke();
   fill(chest.opened ? "#48554a" : "#81583b");
   rect(x - 25, y - 17, 50, 30, 5);
   fill(chest.opened ? "#647563" : "#b07d4f");
   rect(x - 25, y - 19, 50, 12, 5);
-  fill("#e9c574");
+  fill(chest.opened ? "#647563" : chest.loot.color);
   rect(x - 3, y - 10, 7, 13, 2);
-  if (!chest.opened && dist(player.x + player.w / 2, player.y + player.h / 2, x, y) < 82) {
-    drawPrompt("E  OPEN CHEST", x, y - 44);
+  if (!chest.falling && !chest.opened) {
+    fill(chest.loot.color);
+    textAlign(CENTER, CENTER);
+    textSize(11);
+    text(chest.loot.name, x, y - 39);
+    fill(13, 22, 20, 220);
+    rect(x - 25, y - 31, 50, 4, 2);
+    fill(chest.loot.color);
+    rect(x - 25, y - 31, 50 * constrain(chest.timer / 120, 0, 1), 4, 2);
+    if (dist(player.x + player.w / 2, player.y + player.h / 2, x, y) < 82) {
+      drawPrompt("E  OPEN CHEST", x, y - 53);
+    }
   }
 }
 
@@ -800,12 +815,25 @@ function drawBossBar() {
 function drawProjectiles() {
   noStroke();
   for (const shot of projectiles) {
-    fill(255, 192, 106, 45);
-    circle(shot.x, shot.y, 24);
-    fill(shot.color);
-    circle(shot.x, shot.y, 10);
-    fill("#fff2ce");
-    circle(shot.x - 2, shot.y - 2, 3);
+    if (shot.explosive) {
+      fill(255, 111, 63, 45);
+      circle(shot.x, shot.y, 34);
+      stroke(255, 188, 112, 150);
+      strokeWeight(3);
+      line(shot.x - shot.vx * 2, shot.y - shot.vy * 2, shot.x - shot.vx * 4, shot.y - shot.vy * 4);
+      noStroke();
+      fill(shot.color);
+      circle(shot.x, shot.y, 15);
+      fill("#fff0ce");
+      circle(shot.x - 2, shot.y - 2, 4);
+    } else {
+      fill(255, 192, 106, 45);
+      circle(shot.x, shot.y, 24);
+      fill(shot.color);
+      circle(shot.x, shot.y, 10);
+      fill("#fff2ce");
+      circle(shot.x - 2, shot.y - 2, 3);
+    }
   }
   for (const shot of enemyShots) {
     const angle = atan2(shot.vy, shot.vx);
