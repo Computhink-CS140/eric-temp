@@ -51,6 +51,7 @@ function resetRun() {
     dashTimer: 0, dashCooldown: 0, invulnerable: 0, grounded: false
   };
   loadRoom(0);
+  state = "title";
 }
 
 function loadRoom(index) {
