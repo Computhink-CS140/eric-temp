@@ -1,123 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lanterns Below | Cavebound</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      background: #10191a;
-      color: #f5e9d0;
-      font-family: "Trebuchet MS", Georgia, serif;
-    }
+  <head>
 
-    * { box-sizing: border-box; }
+    <!-- import P5 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/addons/p5.sound.min.js"></script>
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: radial-gradient(ellipse at 50% 0%, #29433e 0%, #172625 42%, #10191a 78%);
-    }
+    <!-- linking external css -->
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
+    <title>My Awesome Website</title>
 
-    main {
-      width: min(100%, 1040px);
-      margin: 0 auto;
-      padding: 22px 18px 34px;
-    }
+    <!-- internal css -->
+    <!-- <style>
+    h1 {color: red}
+    h2 {color: yellow}
+    </style -->
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Welcome to my Website</h1>
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-      margin: 0 auto 14px;
-      max-width: 960px;
-    }
+        <!-- inline css -->
+        <h1 style="color:rgb(135, 0, 148)">test</h1>
+      </header>
 
-    h1 {
-      margin: 0;
-      color: #ffd18a;
-      font-size: clamp(22px, 5vw, 34px);
-      font-weight: 700;
-    }
+      <section>
+        <h2>About Me</h2>
+        <p>Hello, it's Eric.</p>
+        <a href="https://www.youtube.com/watch?v=BsIa_LKojJI&t=2s" target="_blank">Click This If Ur A Human...</a>
+        <p><a href="L16_cavefantasy.html">Play: Lanterns Below</a></p>
+      </section>
+    </main>
 
-    header a {
-      color: #9de0c2;
-      font: 600 14px "Trebuchet MS", sans-serif;
-      text-underline-offset: 4px;
-    }
-
-    #game-stage {
-      width: 100%;
-      overflow: hidden;
-      border: 1px solid #688274;
-      background: #111b1c;
-      box-shadow: 0 16px 54px #050b0baa, 0 0 28px #8bd1a326;
-    }
-
-    canvas {
-      display: block;
-      width: 100% !important;
-      height: auto !important;
-    }
-
-    .guide {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 18px;
-      max-width: 960px;
-      margin: 12px auto 0;
-      color: #c0d0c4;
-      font: 13px/1.5 "Trebuchet MS", sans-serif;
-    }
-
-    .guide span { white-space: nowrap; }
-    .guide strong { color: #ffd18a; }
-
-    #about {
-      max-width: 960px;
-      margin: 46px auto 0;
-      color: #c0d0c4;
-      font: 14px/1.6 "Trebuchet MS", sans-serif;
-    }
-
-    #about h2 { color: #ffd18a; font: 700 20px Georgia, serif; }
-    #about a { color: #9de0c2; }
-
-    @media (max-width: 520px) {
-      main { padding: 14px 8px 24px; }
-      header { padding: 0 4px; }
-      .guide { gap: 6px 12px; font-size: 12px; }
-    }
-  </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/p5play@3.35.5/planck.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/p5play@3.35.5/p5play.js"></script>
-</head>
-<body>
-  <main>
-    <header>
-      <h1>Lanterns Below</h1>
-      <a href="#about">About</a>
-    </header>
-    <div id="game-stage" aria-label="Lanterns Below game"></div>
-    <div class="guide" aria-label="Game controls">
-      <span><strong>A / D</strong> move</span>
-      <span><strong>W / Space</strong> jump</span>
-      <span><strong>Shift</strong> dash</span>
-      <span><strong>S</strong> crouch</span>
-      <span><strong>Click / J</strong> fire</span>
-      <span><strong>E</strong> open chest / descend</span>
-      <span><strong>Q</strong> reload</span>
-      <span><strong>1-10</strong> select weapon</span>
-    </div>
-    <section id="about">
-      <h2>About Me</h2>
-      <p>Hello, it's Eric.</p>
-      <a href="https://www.youtube.com/watch?v=BsIa_LKojJI&amp;t=2s" target="_blank" rel="noopener noreferrer">Click This If Ur A Human...</a>
-    </section>
-  </main>
-  <script src="L16_cavefantasy.js"></script>
-</body>
+    <!-- linking js file -->
+    <script src="L15_geometrydash.js"></script>
+  </body>
 </html>
