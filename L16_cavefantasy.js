@@ -9,9 +9,9 @@ const weaponTypes = [
 ];
 
 const bossTypes = [
-  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 120, damage: 1 },
-  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 175, damage: 1 },
-  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 230, damage: 1 }
+  { name: "Mossmaw", title: "The Rootbound", color: "#83b879", health: 120, damage: 1, archetype: "root", attackDelay: 108 },
+  { name: "The Glass Wyrm", title: "Shard of the Deep", color: "#71cbb9", health: 175, damage: 1, archetype: "shard", attackDelay: 112 },
+  { name: "The Cinder King", title: "Last Light Below", color: "#ef8967", health: 230, damage: 1, archetype: "ember", attackDelay: 94 }
 ];
 
 let state = "title";
@@ -58,8 +58,8 @@ function loadRoom(index) {
   roomIndex = index;
   const data = bossTypes[index];
   boss = {
-    x: 790, y: FLOOR_Y - 51, w: 76, h: 98, health: data.health,
-    maxHealth: data.health, data, attackTimer: 92 - index * 6,
+    x: 790, y: index === 1 ? FLOOR_Y - 120 : FLOOR_Y - 51, w: 76, h: 98, health: data.health,
+    maxHealth: data.health, data, attackTimer: data.attackDelay,
     defeated: false, hitFlash: 0
   };
   projectiles = [];
@@ -328,25 +328,41 @@ function updatePickups() {
 
 function updateBoss() {
   if (boss.defeated) return;
-  boss.x = 785 + sin(frameTick * (0.012 + roomIndex * 0.002)) * 30;
+  if (boss.data.archetype === "root") {
+    boss.x = 785 + sin(frameTick * 0.009) * 18;
+    boss.y = FLOOR_Y - 51 + sin(frameTick * 0.035) * 3;
+  } else if (boss.data.archetype === "shard") {
+    boss.x = 760 + sin(frameTick * 0.016) * 58;
+    boss.y = FLOOR_Y - 122 + sin(frameTick * 0.025) * 38;
+  } else {
+    boss.x = 785 + sin(frameTick * 0.02) * 38;
+    boss.y = FLOOR_Y - 58 + sin(frameTick * 0.03) * 8;
+  }
   if (boss.hitFlash > 0) boss.hitFlash--;
   boss.attackTimer--;
   if (boss.attackTimer <= 0) {
     fireBossShot();
-    boss.attackTimer = 100 - roomIndex * 8;
+    boss.attackTimer = boss.data.attackDelay;
   }
 }
 
 function fireWeapon() {
   const weapon = currentWeapon();
   if (player.fireTimer > 0 || player.reloadTimer > 0 || player.ammo <= 0) return;
-  const startX = player.x + player.w / 2 + player.facing * 16;
+  const centerX = player.x + player.w / 2;
   const startY = player.y + (keyIsDown(83) ? 31 : 21);
-  let angle = player.facing === 1 ? 0 : PI;
+  let targetX = centerX + player.facing * 100;
+  let targetY = startY;
   if (mouseIsPressed && mouseX >= 0 && mouseX <= GAME_W && mouseY >= 0 && mouseY <= GAME_H) {
-    angle = atan2(mouseY - startY, mouseX - startX);
-    player.facing = cos(angle) >= 0 ? 1 : -1;
+    targetX = mouseX;
+    targetY = mouseY;
+  } else if (boss && !boss.defeated) {
+    targetX = boss.x;
+    targetY = boss.y;
   }
+  player.facing = targetX >= centerX ? 1 : -1;
+  const startX = centerX + player.facing * 16;
+  const angle = atan2(targetY - startY, targetX - startX);
   projectiles.push({
     x: startX, y: startY, vx: cos(angle) * weapon.speed, vy: sin(angle) * weapon.speed,
     damage: weapon.damage + (player.level - 1) * 2, color: weapon.color, life: 115
@@ -358,14 +374,31 @@ function fireWeapon() {
 
 function fireBossShot() {
   const startX = boss.x - 26;
-  const startY = boss.y - 3;
+  const startY = boss.y;
   const angle = atan2(player.y + player.h / 2 - startY, player.x + player.w / 2 - startX);
-  const speed = 3.2 + roomIndex * 0.45;
-  enemyShots.push({
-    x: startX, y: startY, vx: cos(angle) * speed, vy: sin(angle) * speed,
-    r: 10 + roomIndex, life: 220, color: boss.data.color
-  });
-  burst(startX, startY, boss.data.color, 7);
+  let spread = [0];
+  let speed = 3.4;
+  let radius = 11;
+  let kind = "root";
+  if (boss.data.archetype === "shard") {
+    spread = [-0.25, 0, 0.25];
+    speed = 4.2;
+    radius = 8;
+    kind = "shard";
+  } else if (boss.data.archetype === "ember") {
+    spread = [-0.38, -0.19, 0, 0.19, 0.38];
+    speed = 3.8;
+    radius = 9;
+    kind = "ember";
+  }
+  for (const offset of spread) {
+    const shotAngle = angle + offset;
+    enemyShots.push({
+      x: startX, y: startY, vx: cos(shotAngle) * speed, vy: sin(shotAngle) * speed,
+      r: radius, life: 220, color: boss.data.color, kind
+    });
+  }
+  burst(startX, startY, boss.data.color, spread.length * 3);
 }
 
 function defeatBoss() {
@@ -518,24 +551,75 @@ function drawBoss() {
   if (boss.attackTimer < 28) {
     stroke(255, 105, 88, 125 + sin(frameTick * 0.3) * 90);
     strokeWeight(2);
-    line(x - 28, y, player.x + player.w / 2, player.y + player.h / 2);
+    if (boss.data.archetype === "root") {
+      line(x - 28, y, player.x + player.w / 2, player.y + player.h / 2);
+    } else if (boss.data.archetype === "shard") {
+      for (let offset = -1; offset <= 1; offset++) {
+        line(x - 24, y, player.x + player.w / 2, player.y + player.h / 2 + offset * 54);
+      }
+    } else {
+      line(x - 36, FLOOR_Y - 14, x - 36, FLOOR_Y - 70);
+      line(x, FLOOR_Y - 14, x, FLOOR_Y - 70);
+      line(x + 36, FLOOR_Y - 14, x + 36, FLOOR_Y - 70);
+    }
   }
   noStroke();
   fill(242, 138, 91, 22);
   ellipse(x, y + 10, 150 + sin(frameTick * 0.04) * 10, 145);
-  fill(color);
-  ellipse(x, y + breathe, boss.w, boss.h);
-  fill(31, 48, 41);
-  ellipse(x - 12, y - 12 + breathe, 12, 18);
-  ellipse(x + 13, y - 12 + breathe, 12, 18);
-  fill("#f5d894");
-  circle(x - 10, y - 11 + breathe, 4);
-  circle(x + 15, y - 11 + breathe, 4);
-  fill(20, 31, 28, 190);
-  arc(x, y + 20 + breathe, 32, 21, 0, PI);
-  for (let i = 0; i < 3; i++) {
+  if (boss.data.archetype === "root") {
     fill(color);
-    triangle(x - 29 + i * 22, y - 39 + breathe, x - 20 + i * 22, y - 67 + breathe, x - 11 + i * 22, y - 39 + breathe);
+    ellipse(x, y + breathe, 88, 104);
+    fill("#476445");
+    arc(x, y - 10 + breathe, 82, 72, PI, TWO_PI);
+    for (let i = 0; i < 5; i++) {
+      fill(i % 2 ? "#78985b" : "#a5bd71");
+      triangle(x - 36 + i * 18, y - 29 + breathe, x - 28 + i * 18, y - 61 - (i % 2) * 8 + breathe, x - 18 + i * 18, y - 26 + breathe);
+    }
+    fill("#263a32");
+    ellipse(x - 14, y - 7 + breathe, 10, 15);
+    ellipse(x + 14, y - 7 + breathe, 10, 15);
+    fill("#f6d58b");
+    circle(x - 12, y - 7 + breathe, 4);
+    circle(x + 16, y - 7 + breathe, 4);
+    stroke("#668657");
+    strokeWeight(5);
+    line(x - 31, y + 20, x - 47, y + 39);
+    line(x + 31, y + 20, x + 48, y + 38);
+  } else if (boss.data.archetype === "shard") {
+    push();
+    translate(x, y + breathe);
+    rotate(sin(frameTick * 0.025) * 0.08);
+    noStroke();
+    for (let i = 0; i < 5; i++) {
+      const segmentY = sin(frameTick * 0.05 + i * 0.8) * 7;
+      fill(i % 2 ? "#398b88" : color);
+      ellipse((i - 2) * 17, segmentY, 27, 35);
+      fill("#d0fff0");
+      triangle((i - 2) * 17 - 8, segmentY - 5, (i - 2) * 17, segmentY - 20, (i - 2) * 17 + 5, segmentY + 2);
+    }
+    fill("#b9fff0");
+    triangle(26, -8, 48, 0, 26, 9);
+    fill("#163a3a");
+    circle(30, -3, 4);
+    pop();
+  } else {
+    fill("#9d463d");
+    ellipse(x, y + 12 + breathe, 86, 100);
+    fill(color);
+    arc(x, y + 15 + breathe, 102, 96, PI, TWO_PI);
+    fill("#ffbc69");
+    for (let i = 0; i < 5; i++) {
+      const crownX = x - 32 + i * 16;
+      triangle(crownX - 8, y - 22 + breathe, crownX, y - 67 - (i % 2) * 12 + breathe, crownX + 8, y - 22 + breathe);
+    }
+    fill("#432c2e");
+    ellipse(x - 14, y - 3 + breathe, 12, 17);
+    ellipse(x + 14, y - 3 + breathe, 12, 17);
+    fill("#fff0ad");
+    circle(x - 12, y - 4 + breathe, 4);
+    circle(x + 16, y - 4 + breathe, 4);
+    fill("#6e3c36");
+    triangle(x - 18, y + 19 + breathe, x, y + 48 + breathe, x + 18, y + 19 + breathe);
   }
   drawBossBar();
 }
@@ -568,12 +652,33 @@ function drawProjectiles() {
     circle(shot.x - 2, shot.y - 2, 3);
   }
   for (const shot of enemyShots) {
-    fill(255, 100, 89, 35);
-    circle(shot.x, shot.y, shot.r * 4);
-    fill(shot.color);
-    circle(shot.x, shot.y, shot.r * 2);
-    fill("#fff0ce");
-    circle(shot.x - 2, shot.y - 2, 4);
+    const angle = atan2(shot.vy, shot.vx);
+    push();
+    translate(shot.x, shot.y);
+    rotate(angle);
+    if (shot.kind === "root") {
+      fill(65, 93, 52, 45);
+      ellipse(0, 0, shot.r * 4, shot.r * 2.5);
+      fill(shot.color);
+      triangle(-shot.r, -shot.r * 0.7, shot.r * 1.5, 0, -shot.r, shot.r * 0.7);
+    } else if (shot.kind === "shard") {
+      fill(shot.color);
+      triangle(-shot.r, -shot.r, shot.r * 1.5, 0, -shot.r, shot.r);
+      fill("#e8fff2");
+      triangle(-shot.r * 0.5, -shot.r * 0.4, shot.r * 0.7, 0, -shot.r * 0.5, shot.r * 0.4);
+    } else {
+      stroke(255, 174, 87, 130);
+      strokeWeight(3);
+      line(-shot.r * 2.2, 0, -shot.r * 0.3, 0);
+      noStroke();
+      fill(255, 126, 67, 45);
+      circle(0, 0, shot.r * 4);
+      fill(shot.color);
+      circle(0, 0, shot.r * 2);
+      fill("#fff0ce");
+      circle(-2, -2, 4);
+    }
+    pop();
   }
 }
 
